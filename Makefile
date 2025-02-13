@@ -1,11 +1,10 @@
 CFLAGS ?= -W -Wall -Wextra -Werror -Wundef -Wshadow
 CFLAGS += -Wdouble-promotion -fno-common -Wconversion
-CFLAGS += -march=rv32imc -mabi=ilp32
+CFLAGS += -march=rv32imc_zicsr -mabi=ilp32
 CFLAGS += -Os -ffunction-sections -fdata-sections -I.
 LDFLAGS ?= -Tlink.ld -nostdlib -nostartfiles -Wl,--gc-sections $(EXTRA_LINKFLAGS)
 CWD ?= $(realpath $(CURDIR))
-DOCKER ?= docker run -it --rm -v $(CWD):$(CWD) -w $(CWD) mdashnet/riscv
-C ?= $(DOCKER) riscv-none-elf-gcc
+C ?= /opt/xpack/riscv-none-elf-gcc/bin/riscv-none-elf-gcc
 SOURCES = startup.c main.c
 
 build: firmware.bin
