@@ -320,35 +320,36 @@ extern void uart_tx_one_char(uint8_t);
 
 #define NIBBLE(c) ((c) < 10 ? (c) + '0' : (c) + 'W')
 #define PUTCHAR(c) uart_tx_one_char(c)
-static inline void hexdump(const void *buf, size_t len) {
-  const uint8_t *p = (const uint8_t *) buf;
-  char ascii[16];
-  size_t i, j, n = 0;
-  for (i = 0; i < len; i++) {
-    if ((i % 16) == 0) {
-      // Print buffered ascii chars
-      if (i > 0) {
-        PUTCHAR(' '), PUTCHAR(' ');
-        for (j = 0; j < sizeof(ascii); j++) PUTCHAR(ascii[j]);
-        PUTCHAR('\n'), n = 0;
-      }
-      // Print hex address, then \t
-      PUTCHAR(NIBBLE((i >> 12) & 15)), PUTCHAR(NIBBLE((i >> 8) & 15));
-      PUTCHAR(NIBBLE((i >> 4) & 15)), PUTCHAR('0');
-      PUTCHAR(' '), PUTCHAR(' '), PUTCHAR(' ');
-    }
-    PUTCHAR(NIBBLE(p[i] >> 4)), PUTCHAR(NIBBLE(p[i] & 15));
-    PUTCHAR(' ');  // Space after hex number
-    if (p[i] >= ' ' && p[i] <= '~') {
-      ascii[n++] = (char) p[i];  // Printable
-    } else {
-      ascii[n++] = '.';  // Non-printable
-    }
-  }
-  if (n > 0) {
-    while (n < 16) PUTCHAR(' '), PUTCHAR(' '), PUTCHAR(' '), ascii[n++] = ' ';
-    PUTCHAR(' '), PUTCHAR(' ');
-    for (j = 0; j < sizeof(ascii); j++) PUTCHAR(ascii[j]);
-  }
-  PUTCHAR('\n');
-}
+
+//static inline void hexdump(const void *buf, size_t len) {
+//  const uint8_t *p = (const uint8_t *) buf;
+//  char ascii[16];
+//  size_t i, j, n = 0;
+//  for (i = 0; i < len; i++) {
+//    if ((i % 16) == 0) {
+//      // Print buffered ascii chars
+//      if (i > 0) {
+//        PUTCHAR(' '), PUTCHAR(' ');
+//        for (j = 0; j < sizeof(ascii); j++) PUTCHAR(ascii[j]);
+//        PUTCHAR('\n'), n = 0;
+//      }
+//      // Print hex address, then \t
+//      PUTCHAR(NIBBLE((i >> 12) & 15)), PUTCHAR(NIBBLE((i >> 8) & 15));
+//      PUTCHAR(NIBBLE((i >> 4) & 15)), PUTCHAR('0');
+//      PUTCHAR(' '), PUTCHAR(' '), PUTCHAR(' ');
+//    }
+//    PUTCHAR(NIBBLE(p[i] >> 4)), PUTCHAR(NIBBLE(p[i] & 15));
+//    PUTCHAR(' ');  // Space after hex number
+//    if (p[i] >= ' ' && p[i] <= '~') {
+//      ascii[n++] = (char) p[i];  // Printable
+//    } else {
+//      ascii[n++] = '.';  // Non-printable
+//    }
+//  }
+//  if (n > 0) {
+//    while (n < 16) PUTCHAR(' '), PUTCHAR(' '), PUTCHAR(' '), ascii[n++] = ' ';
+//    PUTCHAR(' '), PUTCHAR(' ');
+//    for (j = 0; j < sizeof(ascii); j++) PUTCHAR(ascii[j]);
+//  }
+//  PUTCHAR('\n');
+//}
