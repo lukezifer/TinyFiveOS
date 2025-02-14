@@ -1,25 +1,90 @@
-CFLAGS ?= -W -Wall -Wextra -Werror -Wundef -Wshadow
-CFLAGS += -Wdouble-promotion -fno-common -Wconversion
-CFLAGS += -march=rv32imc_zicsr -mabi=ilp32
-CFLAGS += -Os -ffunction-sections -fdata-sections -I.
-LDFLAGS ?= -Tlink.ld -nostdlib -nostartfiles -Wl,--gc-sections $(EXTRA_LINKFLAGS)
-CWD ?= $(realpath $(CURDIR))
-C ?= /opt/xpack/riscv-none-elf-gcc/bin/riscv-none-elf-gcc
-SOURCES = startup.c main.c
+TOOLCHAIN := /opt/xpack/riscv-none-elf-gcc/bin/riscv-none-elf
+GCC       := $(TOOLCHAIN)-gcc
+GDB       := $(TOOLCHAIN)-gdb
+OBJCOPY   := $(TOOLCHAIN)-objcopy
+OBJDUMP   := $(TOOLCHAIN)-objdump
+SIZE      := $(TOOLCHAIN)-size
+NM        := $(TOOLCHAIN)-nm
+DEMANGLE  := $(TOOLCHAIN)-c++filt
+ULTOOL    := esputil
+Q         ?= @
 
-build: firmware.bin
+OBJDIR    := obj
+BINDIR    := bin
+DEPDIR    := dep
 
-firmware.elf: $(SOURCES) hal.h link.ld Makefile
-	$(C) $(CFLAGS) $(CFLAGS_EXTRA) $(SOURCES) $(LDFLAGS) -o $@
+SRCEND    ?= c
+EXECFILE  ?= t5os
+SRCFILES  := $(shell find . -name "*.$(SRCEND)")
+OBJECTS   := $(notdir $(SRCFILES:.$(SRCEND)=.o))
+DEPENDS   := $(patsubst %.o,$(DEPDIR)/%.d,$(OBJECTS))
 
-firmware.bin: firmware.elf
-	esputil mkbin firmware.elf $@
+OPTFLAG   ?= -Os
+BASEFLAGS := -W -Wall -Wextra -Werror -Wundef -Wshadow
+BASEFLAGS += -Wdouble-promotion -fno-common -Wconversion
+BASEFLAGS += -march=rv32imc_zicsr -mabi=ilp32
+BASEFLAGS += -ffunction-sections -fdata-sections -I.
+GCCFLAGS  := $(BASEFLAGS) $(OPTFLAG)
+LDFLAGS   := $(BASEFLAGS) -Tlink.ld -nostdlib -nostartfiles -Wl,--gc-sections $(EXTRA_LINKFLAGS)
+NMFLAGS   := --numeric-sort --print-size
+OBJPRE = $(addprefix $(OBJDIR)/, $(OBJECTS))
 
-flash: firmware.bin
-	esputil flash 0 firmware.bin
+VPATH = $(sort $(dir $(SRCFILES)))
 
-monitor:
-	esputil monitor
+.PHONY: all clean text info dump flash monitor
+
+all: $(BINDIR)/$(EXECFILE).bin
+
+$(DEPDIR)/%.d: %.$(SRCEND)
+	@mkdir -p $(@D)
+	@echo "DEP	$<"
+	$(Q) $(GCC) $(GCCFLAGS) -MM -MT $(OBJDIR)/$*.o -MF $@ $<
+
+$(OBJDIR)/%.o: %.$(SRCEND)
+	@mkdir -p $(@D)
+	@echo "CC	$<"
+	$(Q) $(GCC) $(GCCFLAGS) $(INCLUDE) -c $< -o $@
+
+$(BINDIR)/$(EXECFILE).elf: $(OBJPRE)
+	@mkdir -p $(@D)
+	@echo "LD	$@"
+	$(Q) $(GCC) -o $@ $^ $(LDFLAGS)
+
+text: bin
+
+bin: $(BINDIR)/$(EXECFILE).bin
+
+$(BINDIR)/%.bin: $(BINDIR)/%.elf
+	@echo "COPY	$@"
+	$(Q) $(ULTOOL) mkbin $< $@
+
+dump: $(BINDIR)/$(EXECFILE).lst
+
+$(BINDIR)/%.lst: $(BINDIR)/$(EXECFILE).elf
+	@echo "DUMP	$@"
+	$(Q) $(OBJDUMP) -h -S $< > $@
+
+info: $(BINDIR)/$(EXECFILE).elf
+	@echo "INF	$<"
+	$(Q) $(SIZE) -A -t $(BINDIR)/$(EXECFILE).elf > $(BINDIR)/$(EXECFILE)_size.txt
+	$(Q) $(NM) $(NMFLAGS) $(BINDIR)/$(EXECFILE).elf > $(BINDIR)/$(EXECFILE)_nm.txt
+	$(Q) $(NM) $(NMFLAGS) $(BINDIR)/$(EXECFILE).elf | $(DEMANGLE) > $(BINDIR)/$(EXECFILE)_cppfilt.txt
 
 clean:
-	@rm -rf *.{bin,elf,map,lst,tgz,zip,hex} firmware*
+	@echo "CLEAN"
+	$(Q) $(RM) -r $(BINDIR)
+	$(Q) $(RM) -r $(DEPDIR)
+	$(Q) $(RM) -r $(OBJDIR)
+
+flash: $(BINDIR)/$(EXECFILE).bin
+	@echo "FLAS	$<"
+	$(Q) $(ULTOOL) flash 0 $<
+
+monitor:
+	@echo "MONITOR"
+	$(Q) $(ULTOOL) monitor
+
+ifneq ($(MAKECMDGOALS),clean)
+-include $(DEPENDS)
+endif
+
