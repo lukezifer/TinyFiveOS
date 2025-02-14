@@ -1,0 +1,5 @@
+#Build Artifacts
+bin/
+dep/
+obj/
+
