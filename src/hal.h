@@ -288,68 +288,7 @@ static inline bool timer_expired(volatile uint64_t *t, uint64_t prd, uint64_t no
   return true;                                   // Expired, return true
 }
 
-//struct irq_data {
-//  void (*fn)(void *);   // User-defined handler function
-//  void *arg;            // User-defined handler function param
-//  void (*clr)(void *);  // Interrupt clearance function
-//  void *clr_arg;        // Interrupt clearance function param
-//};
-
-//extern struct irq_data g_irq_data[32];
-//extern int cpu_alloc_interrupt(uint8_t prio /* 1..15 */);
-
-// static inline void gpio_clear_interrupt(void *param) {
-//   uint16_t pin = (uint16_t) (uintptr_t) param;
-//   GPIO->STATUS &= ~BIT(pin);
-//   //printf("clearing pin %d irq\n", pin);
-// }
-
-//static inline void gpio_set_irq_handler(uint16_t pin, void (*fn)(void *), void *arg) {
-//  int no = cpu_alloc_interrupt(1);
-//  g_irq_data[no].fn = fn;
-//  g_irq_data[no].arg = arg;
-//  g_irq_data[no].clr = gpio_clear_interrupt;
-//  g_irq_data[no].clr_arg = (void *) (uintptr_t) pin;
-//  REG(C3_INTERRUPT)[0xf8 / 4] |= BIT(16);  // Enable CPU IRQ
-//  REG(C3_GPIO)
-//  [0x74 / 4 + pin] |= (3U << 7) | BIT(13);      // Enable intr, any edge
-//  REG(C3_INTERRUPT)[0x40 / 4] = (uint32_t) no;  // LAST: Map GPIO IRQ to CPU
-//}
-
 extern void uart_tx_one_char(uint8_t);
 
 #define NIBBLE(c) ((c) < 10 ? (c) + '0' : (c) + 'W')
 #define PUTCHAR(c) uart_tx_one_char(c)
-
-//static inline void hexdump(const void *buf, size_t len) {
-//  const uint8_t *p = (const uint8_t *) buf;
-//  char ascii[16];
-//  size_t i, j, n = 0;
-//  for (i = 0; i < len; i++) {
-//    if ((i % 16) == 0) {
-//      // Print buffered ascii chars
-//      if (i > 0) {
-//        PUTCHAR(' '), PUTCHAR(' ');
-//        for (j = 0; j < sizeof(ascii); j++) PUTCHAR(ascii[j]);
-//        PUTCHAR('\n'), n = 0;
-//      }
-//      // Print hex address, then \t
-//      PUTCHAR(NIBBLE((i >> 12) & 15)), PUTCHAR(NIBBLE((i >> 8) & 15));
-//      PUTCHAR(NIBBLE((i >> 4) & 15)), PUTCHAR('0');
-//      PUTCHAR(' '), PUTCHAR(' '), PUTCHAR(' ');
-//    }
-//    PUTCHAR(NIBBLE(p[i] >> 4)), PUTCHAR(NIBBLE(p[i] & 15));
-//    PUTCHAR(' ');  // Space after hex number
-//    if (p[i] >= ' ' && p[i] <= '~') {
-//      ascii[n++] = (char) p[i];  // Printable
-//    } else {
-//      ascii[n++] = '.';  // Non-printable
-//    }
-//  }
-//  if (n > 0) {
-//    while (n < 16) PUTCHAR(' '), PUTCHAR(' '), PUTCHAR(' '), ascii[n++] = ' ';
-//    PUTCHAR(' '), PUTCHAR(' ');
-//    for (j = 0; j < sizeof(ascii); j++) PUTCHAR(ascii[j]);
-//  }
-//  PUTCHAR('\n');
-//}
