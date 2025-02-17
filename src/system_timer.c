@@ -49,7 +49,7 @@ gate_ctx_t system_timer_gate = {.prologue = system_timer_interrupt_prologue,
                                 .is_queued = false};
 
 void system_timer_init(void) {
-  SYSTIMER->TARGET0_CONF = BIT(30) | 1600000; // Set period
+  SYSTIMER->TARGET0_CONF = BIT(30) | 16000000; // Set period
   SYSTIMER->COMP0_LOAD = BIT(0);            // Reload period
   SYSTIMER->CONF |= BIT(24);                // Enable comparator 0
   SYSTIMER->INT_ENA |= 7U;                  // Enable interrupts on all targets
@@ -67,7 +67,6 @@ void system_timer_interrupt_clear(void) {
 
 bool system_timer_interrupt_prologue(void) {
 	s_ticks++;
-	printf("SysTimePro s_ticks %llu\n", s_ticks);
 	return true;
 }
 
