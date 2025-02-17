@@ -22,7 +22,7 @@ DEPENDS   := $(patsubst %.o,$(DEPDIR)/%.d,$(OBJECTS))
 OPTFLAG   ?= -Os
 BASEFLAGS := -W -Wall -Wextra -Werror -Wundef -Wshadow
 BASEFLAGS += -Wdouble-promotion -fno-common -Wconversion
-BASEFLAGS += -march=rv32imc_zicsr -mabi=ilp32
+BASEFLAGS += -march=rv32imc_zicsr -mabi=ilp32 -std=c99
 BASEFLAGS += -ffunction-sections -fdata-sections -I.
 GCCFLAGS  := $(BASEFLAGS) $(OPTFLAG)
 LDFLAGS   := $(BASEFLAGS) -Tlink.ld -nostdlib -nostartfiles -Wl,--gc-sections $(EXTRA_LINKFLAGS)
