@@ -1,19 +1,12 @@
-# Blinky
+# TinyFive OS
 
-In order to build this firmware,
+TinyFive OS is a Hobbyist Operating System for RISC-V.
 
-- Install docker
-- Install esputil from https://github.com/cpq/esputil
+The implementation is a work in progress and is not yet complete. Currently the implementation provides a Interrupt Synchronization with a Prologue/Epilogue Abstraction.
 
-Use any ESP32-C3 board, for example ESP32-C3-DevKITM-1.
-Attach LED to pin 2. Then,
+Currently supported boards: esp32c3
 
-```sh
-$ export PORT=/dev/SERIAL_PORT
-$ make flash monitor
-...
-tick:  1001, CPU 160 MHz
-tick:  2001, CPU 160 MHz
-tick:  3001, CPU 160 MHz
-...
-```
+## Dependencies
+
+- riscv-none-elf-gcc
+- esputil
