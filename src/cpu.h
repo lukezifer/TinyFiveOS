@@ -6,4 +6,4 @@
 extern void cpu_enable_interrupts(void);
 extern void cpu_disable_interrupts(void);
 extern void cpu_die(void);
-extern bool cpu_allocate_interrupt(uint8_t prio, uint8_t interrupt_num);
+extern bool cpu_allocate_interrupt(uint8_t int_num, uint8_t int_prio);
