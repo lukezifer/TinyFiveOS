@@ -1,26 +1,31 @@
 #include "queue.h"
 
-void init_queue(queue_t *q) {
-	q->head = 0;
-	q->tail = 0;
+void queue_init(queue_t *q) {
+  q->head = 0;
+  q->tail = 0;
+  q->size = 0;
 }
 
-bool queue_isFull(queue_t *q) {
-	return (q->tail == QUEUE_SIZE);
+bool queue_isFull(const queue_t *q) { return q->size == QUEUE_SIZE; }
+
+bool queue_isEmpty(const queue_t *q) { return q->size == 0; }
+
+bool queue_enqueue(queue_t *q, gate_ctx_t *item) {
+  if (queue_isFull(q)) {
+    return false;
+  }
+  q->items[q->tail] = item;
+  q->tail = (q->tail + 1) % QUEUE_SIZE;
+  q->size++;
+  return true;
 }
 
-void queue_enqueue(queue_t *q, gate_ctx_t item) {
-	if (!queue_isFull(q)) {
-		q->items[q->tail] = item;
-		q->tail++;
-	}
-}
-
-void queue_dequeue(queue_t *q, gate_ctx_t *item) {
-	if (q->head != q->tail) {
-		*item = q->items[q->head];
-		q->head++;
-	} else {
-		item = NULL;
-	}
+bool queue_dequeue(queue_t *q, gate_ctx_t **item) {
+  if (queue_isEmpty(q)) {
+    return false;
+  }
+  *item = q->items[q->head];
+  q->head = (q->head + 1) % QUEUE_SIZE;
+  q->size--;
+  return true;
 }

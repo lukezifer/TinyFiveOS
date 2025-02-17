@@ -18,6 +18,7 @@ void gate_set_dequeue(gate_ctx_t *ctx){
 bool gate_set_queued(gate_ctx_t *ctx){
 	//return __sync_lock_test_and_set(&ctx->is_queued, 1) == 1;
 	//return atomic_flag_test_and_set(&(ctx->is_queued));
+	bool result = ctx->is_queued;
 	ctx->is_queued = true;
-	return ctx->is_queued;
+	return result;
 }
