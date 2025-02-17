@@ -9,16 +9,15 @@ static char *s_heap_start, *s_heap_end, *s_brk;
 
 extern int main(void);
 
-__attribute__((interrupt)) void irq_handler(void)
-{
-	uint32_t mcause = CSR_READ(mcause);
-	uint32_t mepc = CSR_READ(mepc);
-	if((mcause & BIT(31))) {
-		uint32_t no = mcause << 1 >> 1;
-		guardian(no);
-	} else {
-		CSR_WRITE(mepc, mepc + 4);
-	}
+__attribute__((interrupt)) void irq_handler(void) {
+  uint32_t mcause = CSR_READ(mcause);
+  uint32_t mepc = CSR_READ(mepc);
+  if ((mcause & BIT(31))) {
+    uint32_t no = mcause << 1 >> 1;
+    guardian(no);
+  } else {
+    CSR_WRITE(mepc, mepc + 4);
+  }
 }
 
 __attribute__((aligned(256))) void irq_table(void) {
@@ -28,7 +27,7 @@ __attribute__((aligned(256))) void irq_table(void) {
 }
 
 void kernel_init(void) {
-	watchdog_timer_disable();
+  watchdog_timer_disable();
   main();
 }
 
