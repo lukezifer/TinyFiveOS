@@ -19,7 +19,7 @@ SRCFILES  := $(shell find . -name "*.$(SRCEND)")
 OBJECTS   := $(notdir $(SRCFILES:.$(SRCEND)=.o))
 DEPENDS   := $(patsubst %.o,$(DEPDIR)/%.d,$(OBJECTS))
 
-OPTFLAG   ?= -Os
+OPTFLAG   ?= -O0 -g3
 BASEFLAGS := -W -Wall -Wextra -Werror -Wundef -Wshadow
 BASEFLAGS += -Wdouble-promotion -fno-common -Wconversion
 BASEFLAGS += -march=rv32imc_zicsr -mabi=ilp32 -std=c99
