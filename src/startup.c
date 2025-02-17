@@ -1,102 +1,121 @@
-// SPDX-FileCopyrightText: 2021-2023 Cesanta Software Limited
-// SPDX-License-Identifier: MIT
 
+#include "guardian.h"
 #include "hal.h"
+#include "watchdog_timer.h"
 
-extern int main(void);
-extern void SystemInit(void);
 extern char _sbss, _ebss, _end, _eram;
-
 static char *s_heap_start, *s_heap_end, *s_brk;
 
-void kernel_init(void);
+extern int main(void);
 
-void *sbrk(int diff) {
-  char *old = s_brk;
-  if (&s_brk[diff] > s_heap_end) return NULL;
-  s_brk += diff;
-  return old;
+static void save_context(void);
+static void restore_context(void);
+
+//struct irq_data g_irq_data[32];
+
+__attribute__((interrupt)) void irq_handler_0(void) {
+  save_context();
+  __asm__("li a0, 0      \n" // Put interrupt number on the stack as the first argument
+          "call guardian \n" // Call guardian()
+          "li a7, 93     \n" // Load the ecall number for exit (93) into a7
+          "ecall");
+  restore_context();
 }
 
-// Mark it weak - allow user to override it
-__attribute__((weak)) void SysTick_Handler(void) {
+__attribute__((interrupt)) void irq_handler_1(void) {
+  save_context();
+  __asm__("li a0, 1      \n" // Put interrupt number on the stack as the first argument "call guardian \n" // Call guardian() "li a7, 93     \n" // Load the ecall number for exit (93) into a7
+          "ecall");
+  restore_context();
 }
 
-// C handlers associated with CPU interrupts, with their arguments
-struct irq_data g_irq_data[32];
-
-
-// Attribute interrupt makes this function to:
-// 1. Return with mret instruction
-// 2. Save/restore all used registers
-__attribute__((interrupt)) void irq_handler(void) {
-  unsigned long mcause = CSR_READ(mcause), mepc = CSR_READ(mepc);
-  //printf("mcause %lx\n", mcause);
-  if ((mcause & BIT(31))) {          // Interrupt
-    uint32_t no = mcause << 1 >> 1;  // Interrupt number
-    if (no < sizeof(g_irq_data) / sizeof(g_irq_data[0])) {
-      struct irq_data *d = &g_irq_data[no];
-      if (d->clr) d->clr(d->clr_arg);  // Clear interrupt
-      if (d->fn) d->fn(d->arg);        // Call user handler
-    }
-  } else {  // Exception
-    CSR_WRITE(mepc, mepc + 4);
-  }
-}
-
-// Vector table. Point all entries to the irq_handler()
 __attribute__((aligned(256))) void irqtab(void) {
-  asm(".rept 32");       // 32 entries
-  asm("j irq_handler");  // Jump to irq_handler()
-  asm(".endr");
+  __asm__("j irq_handler_0 \n" // Jump to irq_handler()
+          ".rept 31        \n" // 32 entries
+          "j irq_handler_1 \n" // Jump to irq_handler()
+          ".endr");
 }
 
-// ESP32C3 lets us bind peripheral interrupts to the CPU interrupts, 1..31
-int cpu_alloc_interrupt(uint8_t prio /* 1..15 */) {
-  static uint32_t allocated;
-  for (uint8_t no = 1; no < 31; no++) {
-    if (allocated & BIT(no)) continue;             // Used, try the next one
-    allocated |= BIT(no);                          // Claim this one
-    REG(C3_INTERRUPT)[0x104 / 4] |= BIT(no);        // CPU_INT_ENA
-    REG(C3_INTERRUPT)[0x118 / 4 + no - 1] = prio;  // CPU_INT_PRI_N
-    // REG(C3_INTERRUPT)[0x108 / 4] |= BIT(no);  // Edge
-    printf("Allocated CPU IRQ %d, prio %u\n", no, prio);
-    return no;
-  }
-  return -1;
+static void save_context() {
+  __asm__("addi sp, sp, -124 \n"
+          "sw x1, 120(sp)    \n"
+          "sw x2, 116(sp)    \n"
+          "sw x3, 112(sp)    \n"
+          "sw x4, 108(sp)    \n"
+          "sw x5, 104(sp)    \n"
+          "sw x6, 100(sp)    \n"
+          "sw x7, 96(sp)     \n"
+          "sw x8, 92(sp)     \n"
+          "sw x9, 88(sp)     \n"
+          "sw x10, 84(sp)    \n"
+          "sw x11, 80(sp)    \n"
+          "sw x12, 76(sp)    \n"
+          "sw x13, 72(sp)    \n"
+          "sw x14, 68(sp)    \n"
+          "sw x15, 64(sp)    \n"
+          "sw x16, 60(sp)    \n"
+          "sw x17, 56(sp)    \n"
+          "sw x18, 52(sp)    \n"
+          "sw x19, 48(sp)    \n"
+          "sw x20, 44(sp)    \n"
+          "sw x21, 40(sp)    \n"
+          "sw x22, 36(sp)    \n"
+          "sw x23, 32(sp)    \n"
+          "sw x24, 28(sp)    \n"
+          "sw x25, 24(sp)    \n"
+          "sw x26, 20(sp)    \n"
+          "sw x27, 16(sp)    \n"
+          "sw x28, 12(sp)    \n"
+          "sw x29, 8(sp)     \n"
+          "sw x30, 4(sp)     \n"
+          "sw x31, 0(sp)");
 }
 
-static void systimer_clear_interrupt(void *param) {
-  (void) param;
-  SYSTIMER->INT_CLR = 7U;  // Clear all 3 units
+static void restore_context() {
+  __asm__("lw x1, 120(sp) \n"
+          "lw x2, 116(sp) \n"
+          "lw x3, 112(sp) \n"
+          "lw x4, 108(sp) \n"
+          "lw x5, 104(sp) \n"
+          "lw x6, 100(sp) \n"
+          "lw x7, 96(sp)  \n"
+          "lw x8, 92(sp)  \n"
+          "lw x9, 88(sp)  \n"
+          "lw x10, 84(sp) \n"
+          "lw x11, 80(sp) \n"
+          "lw x12, 76(sp) \n"
+          "lw x13, 72(sp) \n"
+          "lw x14, 68(sp) \n"
+          "lw x15, 64(sp) \n"
+          "lw x16, 60(sp) \n"
+          "lw x17, 56(sp) \n"
+          "lw x18, 52(sp) \n"
+          "lw x19, 48(sp) \n"
+          "lw x20, 44(sp) \n"
+          "lw x21, 40(sp) \n"
+          "lw x22, 36(sp) \n"
+          "lw x23, 32(sp) \n"
+          "lw x24, 28(sp) \n"
+          "lw x25, 24(sp) \n"
+          "lw x26, 20(sp) \n"
+          "lw x27, 16(sp) \n"
+          "lw x28, 12(sp) \n"
+          "lw x29, 8(sp)  \n"
+          "lw x30, 4(sp)  \n"
+          "lw x31, 0(sp)  \n"
+          "addi sp, sp, 124");
 }
 
-// Systimer is clocked by 16Mhz. Setup alarm and bind it to the CPU IRQ
-static void systick_init(void) {
-  SYSTIMER->TARGET0_CONF = BIT(30) | 16000;  // Set period
-  SYSTIMER->COMP0_LOAD = BIT(0);             // Reload period
-  SYSTIMER->CONF |= BIT(24);                 // Enable comparator 0
-  SYSTIMER->INT_ENA |= 7U;                   // Enable interrupts on all targets
 
-  int no = cpu_alloc_interrupt(1);
-  g_irq_data[no].fn = (void (*)(void *)) SysTick_Handler;
-  g_irq_data[no].clr = systimer_clear_interrupt;
-  REG(C3_INTERRUPT)[0xfc / 4] |= BIT(5) | BIT(6) | BIT(7);  // Enable CPU IRQ
-  //REG(C3_INTERRUPT)[0xfc / 4] |= BIT(5);                    // Enable CPU IRQ
-  REG(C3_INTERRUPT)[0x94 / 4] = (uint8_t) no;  // LAST: Map systimer IRQ to CPU
+void kernel_init(void) {
+	watchdog_timer_disable();
+  main();
 }
 
 void Reset_Handler(void) {
   s_heap_start = s_brk = &_end, s_heap_end = &_eram;
-  for (char *p = &_sbss; p < &_ebss;) *p++ = '\0';
-  CSR_WRITE(mtvec, irqtab);  // Route all interrupts to the irq_handler()
+  for (char *p = &_sbss; p < &_ebss;)
+    *p++ = '\0';
+  CSR_WRITE(mtvec, irqtab); // Route all interrupts to the irq_handler()
   kernel_init();
-}
-
-void kernel_init() {
-  soc_init();
-  systick_init();
-  SystemInit();
-  main();
-  for (;;) (void) 0;
 }

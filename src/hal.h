@@ -71,11 +71,11 @@
 #define C3_APB_SARADC 0x60040000
 #define C3_AES_XTS 0x600CC000
 
-#define CSR_WRITE(reg, val) ({ asm volatile("csrw " #reg ", %0" ::"rK"(val)); })
+#define CSR_WRITE(reg, val) ({ __asm__ volatile("csrw " #reg ", %0" ::"rK"(val)); })
 #define CSR_READ(reg)                          \
   ({                                           \
     unsigned long v_;                          \
-    asm volatile("csrr %0, " #reg : "=r"(v_)); \
+    __asm__ volatile("csrr %0, " #reg : "=r"(v_)); \
     v_;                                        \
   })
 #define CSR_SETBITS(reg, cm, sm) CSR_WRITE(reg, (CSR_READ(reg) & ~(cm)) | (sm))
@@ -86,14 +86,14 @@ struct sysreg {  // System registers. 16.4 (incomplete)
 };
 #define SYSREG ((struct sysreg *) C3_SYSTEM)
 
-struct systimer {  // 10.6 (complete)
-  volatile uint32_t CONF, UNIT0_OP, UNIT1_OP, UNIT0_LOAD_HI, UNIT0_LOAD_LO, UNIT1_LOAD_HI,
-      UNIT1_LOAD_LO, TARGET0_HI, TARGET0_LO, TARGET1_HI, TARGET1_LO, TARGET2_HI, TARGET2_LO,
-      TARGET0_CONF, TARGET1_CONF, TARGET2_CONF, UNIT0_VALUE_HI, UNIT0_VALUE_LO, UNIT1_VALUE_HI,
-      UNIT1_VALUE_LO, COMP0_LOAD, COMP1_LOAD, COMP2_LOAD, UNIT0_LOAD, UNIT1_LOAD, INT_ENA, INT_RAW,
-      INT_CLR, INT_ST, RESERVED0[34], DATE;
-};
-#define SYSTIMER ((struct systimer *) C3_SYSTIMER)
+//struct systimer {  // 10.6 (complete)
+//  volatile uint32_t CONF, UNIT0_OP, UNIT1_OP, UNIT0_LOAD_HI, UNIT0_LOAD_LO, UNIT1_LOAD_HI,
+//      UNIT1_LOAD_LO, TARGET0_HI, TARGET0_LO, TARGET1_HI, TARGET1_LO, TARGET2_HI, TARGET2_LO,
+//      TARGET0_CONF, TARGET1_CONF, TARGET2_CONF, UNIT0_VALUE_HI, UNIT0_VALUE_LO, UNIT1_VALUE_HI,
+//      UNIT1_VALUE_LO, COMP0_LOAD, COMP1_LOAD, COMP2_LOAD, UNIT0_LOAD, UNIT1_LOAD, INT_ENA, INT_RAW,
+//      INT_CLR, INT_ST, RESERVED0[34], DATE;
+//};
+//#define SYSTIMER ((struct systimer *) C3_SYSTIMER)
 
 struct gpio {  // 5.14 (incomplete)
   volatile uint32_t BT_SELECT, OUT, OUT_W1TS, OUT_W1TC, RESERVED0[4], ENABLE, ENABLE_W1TS,
@@ -113,70 +113,70 @@ enum { GPIO_OUT_EN = 8, GPIO_OUT_FUNC = 341, GPIO_IN_FUNC = 85 };
 
 // Perform `count` "NOP" operations
 static inline void spin(volatile unsigned long count) {
-  while (count--) asm volatile("nop");
+  while (count--) __asm__ volatile("nop");
 }
 
-static inline uint64_t systick(void) {
-  SYSTIMER->UNIT0_OP = BIT(30);  // TRM 10.5
-  spin(1);
-  return ((uint64_t) SYSTIMER->UNIT0_VALUE_HI << 32) | SYSTIMER->UNIT0_VALUE_LO;
-}
+//static inline uint64_t systick(void) {
+//  SYSTIMER->UNIT0_OP = BIT(30);  // TRM 10.5
+//  spin(1);
+//  return ((uint64_t) SYSTIMER->UNIT0_VALUE_HI << 32) | SYSTIMER->UNIT0_VALUE_LO;
+//}
 
-static inline uint64_t uptime_us(void) {
-  return systick() >> 4;
-}
+//static inline uint64_t uptime_us(void) {
+//  return systick() >> 4;
+//}
+//
+//static inline void delay_us(unsigned long us) {
+//  uint64_t until = uptime_us() + us;
+//  while (uptime_us() < until) spin(1);
+//}
+//
+//static inline void delay_ms(unsigned long ms) {
+//  delay_us(ms * 1000);
+//}
+//
+//static inline void wdt_disable(void) {
+//  REG(C3_RTCCNTL)[42] = 0x50d83aa1;  // Disable write protection
+//  // REG(C3_RTCCNTL)[36] &= BIT(31);    // Disable RTC WDT
+//  REG(C3_RTCCNTL)[36] = 0;  // Disable RTC WDT
+//  REG(C3_RTCCNTL)[35] = 0;  // Disable
+//
+//  // bootloader_super_wdt_auto_feed()
+//  REG(C3_RTCCNTL)[44] = 0x8F1D312A;
+//  REG(C3_RTCCNTL)[43] |= BIT(31);
+//  REG(C3_RTCCNTL)[45] = 0;
+//
+//  // REG(C3_TIMERGROUP0)[63] &= ~BIT(9);  // TIMG_REGCLK -> disable TIMG_WDT_CLK
+//  REG(C3_TIMERGROUP0 + 0x48)[0] = 0;  // Disable TG0 WDT
+//  REG(C3_TIMERGROUP1 + 0x48)[0] = 0;  // Disable TG1 WDT
+//}
 
-static inline void delay_us(unsigned long us) {
-  uint64_t until = uptime_us() + us;
-  while (uptime_us() < until) spin(1);
-}
+//static inline void wifi_get_mac_addr(uint8_t mac[6]) {
+//  uint32_t a = REG(C3_EFUSE)[17], b = REG(C3_EFUSE)[18];
+//  mac[0] = (b >> 8) & 255, mac[1] = b & 255, mac[2] = (uint8_t) (a >> 24) & 255;
+//  mac[3] = (a >> 16) & 255, mac[4] = (a >> 8) & 255, mac[5] = a & 255;
+//}
 
-static inline void delay_ms(unsigned long ms) {
-  delay_us(ms * 1000);
-}
+//static inline void set_irq_handler(void (*fn)(void)) {
+//  CSR_WRITE(mtvec, (uintptr_t) fn);
+//}
 
-static inline void wdt_disable(void) {
-  REG(C3_RTCCNTL)[42] = 0x50d83aa1;  // Disable write protection
-  // REG(C3_RTCCNTL)[36] &= BIT(31);    // Disable RTC WDT
-  REG(C3_RTCCNTL)[36] = 0;  // Disable RTC WDT
-  REG(C3_RTCCNTL)[35] = 0;  // Disable
-
-  // bootloader_super_wdt_auto_feed()
-  REG(C3_RTCCNTL)[44] = 0x8F1D312A;
-  REG(C3_RTCCNTL)[43] |= BIT(31);
-  REG(C3_RTCCNTL)[45] = 0;
-
-  // REG(C3_TIMERGROUP0)[63] &= ~BIT(9);  // TIMG_REGCLK -> disable TIMG_WDT_CLK
-  REG(C3_TIMERGROUP0 + 0x48)[0] = 0;  // Disable TG0 WDT
-  REG(C3_TIMERGROUP1 + 0x48)[0] = 0;  // Disable TG1 WDT
-}
-
-static inline void wifi_get_mac_addr(uint8_t mac[6]) {
-  uint32_t a = REG(C3_EFUSE)[17], b = REG(C3_EFUSE)[18];
-  mac[0] = (b >> 8) & 255, mac[1] = b & 255, mac[2] = (uint8_t) (a >> 24) & 255;
-  mac[3] = (a >> 16) & 255, mac[4] = (a >> 8) & 255, mac[5] = a & 255;
-}
-
-static inline void set_irq_handler(void (*fn)(void)) {
-  CSR_WRITE(mtvec, (uintptr_t) fn);
-}
-
-static inline void soc_init(void) {
-  // Init clock. TRM 6.2.4.1
-  // REG(C3_SYSTEM)[2] &= ~3U;
-  // REG(C3_SYSTEM)[2] |= BIT(0) | BIT(2);
-  // REG(C3_SYSTEM)[22] = BIT(19) | (40U << 12) | BIT(10);
-  // REG(C3_RTCCNTL)[47] = 0; // RTC_APB_FREQ_REG -> freq >> 12
-  //((void (*)(int)) 0x40000588)(160);  // ets_update_cpu_frequency(160)
-  wdt_disable();
-
-#if 0
-  // Configure system clock timer, TRM 8.3.1, 8.9
-  REG(C3_TIMERGROUP0)[1] = REG(C3_TIMERGROUP0)[2] = 0UL;  // Reset LO and HI
-  REG(C3_TIMERGROUP0)[8] = 0;                             // Trigger reload
-  REG(C3_TIMERGROUP0)[0] = (83U << 13) | BIT(12) | BIT(29) | BIT(30) | BIT(31);
-#endif
-}
+//static inline void soc_init(void) {
+//  // Init clock. TRM 6.2.4.1
+//  // REG(C3_SYSTEM)[2] &= ~3U;
+//  // REG(C3_SYSTEM)[2] |= BIT(0) | BIT(2);
+//  // REG(C3_SYSTEM)[22] = BIT(19) | (40U << 12) | BIT(10);
+//  // REG(C3_RTCCNTL)[47] = 0; // RTC_APB_FREQ_REG -> freq >> 12
+//  //((void (*)(int)) 0x40000588)(160);  // ets_update_cpu_frequency(160)
+//  wdt_disable();
+//
+//#if 0
+//  // Configure system clock timer, TRM 8.3.1, 8.9
+//  REG(C3_TIMERGROUP0)[1] = REG(C3_TIMERGROUP0)[2] = 0UL;  // Reset LO and HI
+//  REG(C3_TIMERGROUP0)[8] = 0;                             // Trigger reload
+//  REG(C3_TIMERGROUP0)[0] = (83U << 13) | BIT(12) | BIT(29) | BIT(30) | BIT(31);
+//#endif
+//}
 
 // API GPIO
 
@@ -288,33 +288,33 @@ static inline bool timer_expired(volatile uint64_t *t, uint64_t prd, uint64_t no
   return true;                                   // Expired, return true
 }
 
-struct irq_data {
-  void (*fn)(void *);   // User-defined handler function
-  void *arg;            // User-defined handler function param
-  void (*clr)(void *);  // Interrupt clearance function
-  void *clr_arg;        // Interrupt clearance function param
-};
+//struct irq_data {
+//  void (*fn)(void *);   // User-defined handler function
+//  void *arg;            // User-defined handler function param
+//  void (*clr)(void *);  // Interrupt clearance function
+//  void *clr_arg;        // Interrupt clearance function param
+//};
 
-extern struct irq_data g_irq_data[32];
-extern int cpu_alloc_interrupt(uint8_t prio /* 1..15 */);
+//extern struct irq_data g_irq_data[32];
+//extern int cpu_alloc_interrupt(uint8_t prio /* 1..15 */);
 
-static inline void gpio_clear_interrupt(void *param) {
-  uint16_t pin = (uint16_t) (uintptr_t) param;
-  GPIO->STATUS &= ~BIT(pin);
-  //printf("clearing pin %d irq\n", pin);
-}
+// static inline void gpio_clear_interrupt(void *param) {
+//   uint16_t pin = (uint16_t) (uintptr_t) param;
+//   GPIO->STATUS &= ~BIT(pin);
+//   //printf("clearing pin %d irq\n", pin);
+// }
 
-static inline void gpio_set_irq_handler(uint16_t pin, void (*fn)(void *), void *arg) {
-  int no = cpu_alloc_interrupt(1);
-  g_irq_data[no].fn = fn;
-  g_irq_data[no].arg = arg;
-  g_irq_data[no].clr = gpio_clear_interrupt;
-  g_irq_data[no].clr_arg = (void *) (uintptr_t) pin;
-  REG(C3_INTERRUPT)[0xf8 / 4] |= BIT(16);  // Enable CPU IRQ
-  REG(C3_GPIO)
-  [0x74 / 4 + pin] |= (3U << 7) | BIT(13);      // Enable intr, any edge
-  REG(C3_INTERRUPT)[0x40 / 4] = (uint32_t) no;  // LAST: Map GPIO IRQ to CPU
-}
+//static inline void gpio_set_irq_handler(uint16_t pin, void (*fn)(void *), void *arg) {
+//  int no = cpu_alloc_interrupt(1);
+//  g_irq_data[no].fn = fn;
+//  g_irq_data[no].arg = arg;
+//  g_irq_data[no].clr = gpio_clear_interrupt;
+//  g_irq_data[no].clr_arg = (void *) (uintptr_t) pin;
+//  REG(C3_INTERRUPT)[0xf8 / 4] |= BIT(16);  // Enable CPU IRQ
+//  REG(C3_GPIO)
+//  [0x74 / 4 + pin] |= (3U << 7) | BIT(13);      // Enable intr, any edge
+//  REG(C3_INTERRUPT)[0x40 / 4] = (uint32_t) no;  // LAST: Map GPIO IRQ to CPU
+//}
 
 extern void uart_tx_one_char(uint8_t);
 

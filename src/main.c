@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "hal.h"
+#include "cpu.h"
 
 #define BLINK_PERIOD_MS 500  // LED blinking period in millis
 #define LOG_PERIOD_MS 1000   // Info log period in millis
@@ -30,18 +31,23 @@ static void log_task(void) {  // Print a log every LOG_PERIOD_MS
   }
 }
 
-static void button_handler(void *param) {
-  uint16_t pin = (uint16_t) (uintptr_t) param;
-  printf("Button %u %s\n", pin, gpio_read(pin) ? "pressed" : "released");
-}
+//static void button_handler(void *param) {
+//  uint16_t pin = (uint16_t) (uintptr_t) param;
+//  printf("Button %u %s\n", pin, gpio_read(pin) ? "pressed" : "released");
+//}
 
 int main(void) {
+
+  cpu_disable_interrupts();
+
   gpio_input(BUTTON_PIN);
   gpio_output(LED_PIN);
   uart_init(UART_DEBUG, 115200);
+  cpu_enable_interrupts();
 
-  gpio_set_irq_handler(BUTTON_PIN, button_handler, (void *) BUTTON_PIN);
-
+  //gpio_set_irq_handler(BUTTON_PIN, button_handler, (void *) BUTTON_PIN);
+  
+	printf("Hello, world! %u\n", 1);
   for (;;) {
     led_task();
     log_task();
