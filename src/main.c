@@ -3,6 +3,9 @@
 
 #include "hal.h"
 #include "cpu.h"
+#include "system_timer.h"
+#include "guard.h"
+#include "plugbox.h"
 
 #define BLINK_PERIOD_MS 500  // LED blinking period in millis
 #define LOG_PERIOD_MS 1000   // Info log period in millis
@@ -17,18 +20,18 @@ void SysTick_Handler(void) {       // SyStick IRQ handler, triggered every 1ms
 }
 
 static void led_task(void) {  // Blink LED every BLINK_PERIOD_MS
-  static uint64_t timer = 0;
-  if (timer_expired(&timer, BLINK_PERIOD_MS, s_ticks)) {
-    gpio_toggle(LED_PIN);
-  }
+  //static uint64_t timer = 0;
+  //if (timer_expired(&timer, BLINK_PERIOD_MS, s_ticks)) {
+  //  gpio_toggle(LED_PIN);
+  //}
 }
 
 static void log_task(void) {  // Print a log every LOG_PERIOD_MS
-  static uint64_t timer = 0;
-  if (timer_expired(&timer, LOG_PERIOD_MS, s_ticks)) {
-    printf("tick: %5lu, CPU %lu MHz\n", (unsigned long) s_ticks,
-           clock_sys_freq() / 1000000);
-  }
+  //static uint64_t timer = 0;
+  //if (timer_expired(&timer, LOG_PERIOD_MS, s_ticks)) {
+  //  printf("tick: %5lu, CPU %lu MHz\n", (unsigned long) s_ticks,
+  //         clock_sys_freq() / 1000000);
+  //}
 }
 
 //static void button_handler(void *param) {
@@ -40,17 +43,22 @@ int main(void) {
 
   cpu_disable_interrupts();
 
-  gpio_input(BUTTON_PIN);
-  gpio_output(LED_PIN);
+  //gpio_input(BUTTON_PIN);
+  //gpio_output(LED_PIN);
   uart_init(UART_DEBUG, 115200);
+	plugbox_init();
+	system_timer_init();
+	guard_init();
   cpu_enable_interrupts();
+	printf("Hello, world! %u\n", 1);
 
   //gpio_set_irq_handler(BUTTON_PIN, button_handler, (void *) BUTTON_PIN);
   
-	printf("Hello, world! %u\n", 1);
   for (;;) {
+		guard_enter();
     led_task();
     log_task();
+		guard_leave();
   }
 
   return 0;
