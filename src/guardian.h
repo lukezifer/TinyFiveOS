@@ -2,4 +2,4 @@
 
 #include <stdint.h>
 
-void guardian(uint32_t interrupt_num);
+extern void guardian(uint32_t interrupt_num);
