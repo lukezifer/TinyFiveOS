@@ -1,0 +1,22 @@
+//draw the epilogue prologue for the implementent software as a sequence diagram
+
+@startuml
+
+participant "E0 (Application)" as App
+participant "E1 (IRQ)" as Int
+
+[-> App ++: main()
+App -> App ++: consume()
+Int <<-] : Interrupt
+deactivate App
+deactivate App
+Int -> Int  ++ : produce()
+return
+activate App
+activate App
+App -->> App
+deactivate App
+rnote left of App
+continue with main()
+endrnote
+@enduml
