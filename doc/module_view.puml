@@ -1,0 +1,21 @@
+@startuml
+
+package "Prologue/Epilogue" {
+	[guard] as guard
+	[plugbox] as plugbox
+	[gate] as gate
+	[queue] as queue
+	[guardian] as guardian
+}
+package "System" {
+	[cpu] as cpu
+	[panic] as panic
+}
+
+package "Periphery" {
+	[gpio_button] as button
+	[system_timer] as timer
+	[watchdog_timer] as watchdog
+}
+
+@enduml
