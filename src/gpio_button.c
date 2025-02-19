@@ -20,11 +20,11 @@ void gpio_button_interrupt_init(void) {
 void gpio_button_interrupt_clear(void) { GPIO->STATUS &= ~BIT(9); }
 
 bool gpio_button_interrupt_prologue(void) {
-	button_count++;
   return true;
 }
 
 void gpio_button_interrupt_epilogue(void) {
+	button_count++;
 	printf("Button pressed %lu times\n", button_count);
 }
 
